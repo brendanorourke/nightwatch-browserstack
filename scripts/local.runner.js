@@ -1,70 +1,33 @@
 #!/usr/bin/env node
 
-var Nightwatch = require('nightwatch');
-var browserstack = require('browserstack-local');
-var localConf = require('../conf/local.conf.js');
+const Nightwatch = require('nightwatch')
+const browserstack = require('browserstack-local')
+let bsLocal
 
-var bs_local;
+const startLocalBrowserstack = (localBrowserstackInstance) => {
+  localBrowserstackInstance.start({ 'key': process.env.BROWSERSTACK_ACCESS_KEY, 'force': true }, (error) => {
+    if (error) {
+      throw error
+    } else {
+      Nightwatch.cli( (argv) => {
+        Nightwatch.CliRunner(argv)
+          .setup(null, () => {
+            localBrowserstackInstance.stop( () => {} )
+          })
+          .runTests(() => {
+            localBrowserstackInstance.stop( () => {} )
+          })
+      })
+    }
+  })
+}
 
 try {
-  process.mainModule.filename = "./node_modules/.bin/nightwatch"
-
-  // Code to start browserstack local before start of test
-  console.log('Connecting local');
-  Nightwatch.bs_local = bs_local = new browserstack.Local();
-
-  var localOptions = {
-    'key': localConf['test_settings']['default']['desiredCapabilities']['browserstack.key']
-  };
-
-  /**
-   * If the network requires proxy configuration for outbound connections,
-   * set those here.
-   */
-  var proxySettings = localConf['proxy'] || {};
-
-  for (var key in proxySettings) {
-    var value = proxySettings[key];
-
-    switch (key) {
-      case 'host':
-        if (value) localOptions['proxyHost'] = value;
-        break;
-
-      case 'port':
-        if (value) localOptions['proxyPort'] = value;
-        break;
-
-      case 'user':
-        if (value) localOptions['proxyUser'] = value;
-        break;
-
-      case 'pass':
-        if (value) localOptions['proxyPass'] = value;
-        break;
-    }
-  }
-
-  console.log('Local options: \n', localOptions);
-
-  bs_local.start(localOptions, function(error) {
-    if (error) throw error;
-
-    console.log('Connected. Now testing...');
-    Nightwatch.cli(function(argv) {
-      Nightwatch.CliRunner(argv)
-        .setup(null, function(){
-          // Code to stop browserstack local after end of parallel test
-          bs_local.stop(function(){});
-        })
-        .runTests(function(){
-          // Code to stop browserstack local after end of single test
-          bs_local.stop(function(){});
-        });
-    });
-  });
-} catch (ex) {
-  console.log('There was an error while starting the test runner:\n\n');
-  process.stderr.write(ex.stack + '\n');
-  process.exit(2);
+  process.mainModule.filename = './node_modules/.bin/nightwatch'
+  Nightwatch.bs_local = bsLocal = new browserstack.Local()
+  startLocalBrowserstack(bsLocal)
+} catch (err) {
+  console.log('There was an error while starting the test runner:\n\n')
+  process.stderr.write(err.stack + '\n')
+  process.exit(2)
 }

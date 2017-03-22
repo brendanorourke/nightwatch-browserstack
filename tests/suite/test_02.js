@@ -1,4 +1,5 @@
 module.exports = {
+  '@tags': ['run'],
   'Google\'s Search Functionality' : function (browser) {
     browser
       .url('https://www.google.com/ncr')
